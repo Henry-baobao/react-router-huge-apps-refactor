@@ -2,70 +2,73 @@
 import React from 'react'
 import { render } from 'react-dom'
 import { Router, browserHistory } from 'react-router'
+import { Route } from 'react-router'
+import App from './components/App'
 import stubbedCourses from './stubs/COURSES'
 
-const rootRoute = {
-  component: 'div',
-  childRoutes: [ {
-    path: '/',
-    component: require('./components/App'),
-    childRoutes: [
-      require('./routes/Calendar'),
-      require('./routes/Course'),
-      require('./routes/Grades'),
-      require('./routes/Messages'),
-      require('./routes/Profile')
-    ]
-  } ]
+// Webpack is configured to create ajax wrappers around each of these modules.
+// Webpack will create a separate chunk for each of these imports (including
+// any dependencies). The real module can be loaded by calling the function:
+// Course(module => { /* module is loaded */ })
+import Course from './routes/Course/Course'
+import AnnouncementsSidebar from './routes/Course/routes/Announcements/Sidebar'
+import Announcements from './routes/Course/routes/Announcements/Announcements'
+import Announcement from './routes/Course/routes/Announcements/routes/Announcement'
+import AssignmentsSidebar from './routes/Course/routes/Assignments/Sidebar'
+import Assignments from './routes/Course/routes/Assignments/Assignments'
+import Assignment from './routes/Course/routes/Assignments/routes/Assignment'
+import CourseGrades from './routes/Course/routes/Grades'
+import Calendar from './routes/Calendar'
+import Grades from './routes/Grades'
+import Messages from './routes/Messages'
+
+function lazyLoadComponent(lazyModule) {
+  return (location, cb) => {
+    lazyModule(module => {
+      cb(null, module)
+    })
+  }
+}
+
+function lazyLoadComponents(lazyModules) {
+  return (location, cb) => {
+    const moduleKeys = Object.keys(lazyModules);
+    const promises = moduleKeys.map(key =>
+      new Promise(resolve => lazyModules[key](resolve))
+    )
+
+    Promise.all(promises).then(modules => {
+      cb(null, modules.reduce((obj, module, i) => {
+        obj[moduleKeys[i]] = module
+        return obj
+      }, {}))
+    })
+  }
 }
 
 render(
-  <Router history={browserHistory} routes={rootRoute} />,
+  <Router history={ browserHistory }>
+    <Route path="/" component={ App }>
+      <Route path="calendar" getComponent={ lazyLoadComponent(Calendar) } />
+      <Route path="course/:courseId" getComponent={ lazyLoadComponent(Course) }>
+        <Route path="announcements" getComponents={ lazyLoadComponents({
+          sidebar: AnnouncementsSidebar,
+          main: Announcements
+        }) }>
+          <Route path=":announcementId" getComponent={ lazyLoadComponent(Announcement) } />
+        </Route>
+        <Route path="assignments" getComponents={ lazyLoadComponents({
+          sidebar: AssignmentsSidebar,
+          main: Assignments
+        }) }>
+          <Route path=":assignmentId" getComponent={ lazyLoadComponent(Assignment) } />
+        </Route>
+        <Route path="grades" getComponent={ lazyLoadComponent(CourseGrades) } />
+      </Route>
+      <Route path="grades" getComponent={ lazyLoadComponent(Grades) } />
+      <Route path="messages" getComponent={ lazyLoadComponent(Messages) } />
+      <Route path="profile" getComponent={ lazyLoadComponent(Calendar) } />
+    </Route>
+  </Router>,
   document.getElementById('example')
 )
-
-// I've unrolled the recursive directory loop that is happening above to get a
-// better idea of just what this huge-apps Router looks like, or just look at the
-// file system :)
-//
-// import { Route } from 'react-router'
-
-// import App from './components/App'
-// import Course from './routes/Course/components/Course'
-// import AnnouncementsSidebar from './routes/Course/routes/Announcements/components/Sidebar'
-// import Announcements from './routes/Course/routes/Announcements/components/Announcements'
-// import Announcement from './routes/Course/routes/Announcements/routes/Announcement/components/Announcement'
-// import AssignmentsSidebar from './routes/Course/routes/Assignments/components/Sidebar'
-// import Assignments from './routes/Course/routes/Assignments/components/Assignments'
-// import Assignment from './routes/Course/routes/Assignments/routes/Assignment/components/Assignment'
-// import CourseGrades from './routes/Course/routes/Grades/components/Grades'
-// import Calendar from './routes/Calendar/components/Calendar'
-// import Grades from './routes/Grades/components/Grades'
-// import Messages from './routes/Messages/components/Messages'
-
-// render(
-//   <Router>
-//     <Route path="/" component={App}>
-//       <Route path="calendar" component={Calendar} />
-//       <Route path="course/:courseId" component={Course}>
-//         <Route path="announcements" components={{
-//           sidebar: AnnouncementsSidebar,
-//           main: Announcements
-//         }}>
-//           <Route path=":announcementId" component={Announcement} />
-//         </Route>
-//         <Route path="assignments" components={{
-//           sidebar: AssignmentsSidebar,
-//           main: Assignments
-//         }}>
-//           <Route path=":assignmentId" component={Assignment} />
-//         </Route>
-//         <Route path="grades" component={CourseGrades} />
-//       </Route>
-//       <Route path="grades" component={Grades} />
-//       <Route path="messages" component={Messages} />
-//       <Route path="profile" component={Calendar} />
-//     </Route>
-//   </Router>,
-//   document.getElementById('example')
-// )

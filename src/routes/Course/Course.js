@@ -1,7 +1,7 @@
 /*globals COURSES:true */
 import React from 'react'
-import Dashboard from './Dashboard'
-import Nav from './Nav'
+import Dashboard from './components/Dashboard'
+import Nav from './components/Nav'
 
 const styles = {}
 
