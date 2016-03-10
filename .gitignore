@@ -1,0 +1,6 @@
+__build__/
+node_modules/
+.DS_Store
+npm-debug.log
+webpack-assets.json
+webpack-stats.json
